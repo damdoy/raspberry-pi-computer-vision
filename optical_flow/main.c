@@ -152,11 +152,8 @@ void main(void){
     //allocate mem for previous image, it will just be memcpyied every image from the current image
     img_prev.img = malloc(img.width*img.height*3);
 
-    const uint TOTAL_LEVELS_PYRAMID = 1;
-    const uint PYRAMID_BLUR = 1; //means box blur filter of size (PYRAMID_BLUR*2+1)
-
-    image_grayscale_t img_gray_prev[TOTAL_LEVELS_PYRAMID];
-    image_grayscale_t img_gray[TOTAL_LEVELS_PYRAMID];
+    image_grayscale_t img_gray_prev;
+    image_grayscale_t img_gray;
 
     sem_wait(&semaphore);
 
@@ -164,7 +161,7 @@ void main(void){
 
     img.img = buffer->data;
 
-    image_convert_to_grayscale(&img, &img_gray[0]);
+    image_convert_to_grayscale(&img, &img_gray);
 
     while(1){
         start_time = get_cur_time();
@@ -180,8 +177,8 @@ void main(void){
         //update current image
         img.img = buffer->data;
 
-        img_gray_prev[0] = img_gray[0];
-        image_convert_to_grayscale(&img, &img_gray[0]);
+        img_gray_prev = img_gray;
+        image_convert_to_grayscale(&img, &img_gray);
 
         uint col[3] = {0, 255, 0};
 
@@ -193,7 +190,7 @@ void main(void){
             for (uint j = space_between_points*2; j < img.height-space_between_points*2; j+=space_between_points){
                 //flow vector variables
                 float u_x, u_y;
-                calc_optical_flow(&img_gray[0], &img_gray_prev[0], i, j, &u_x, &u_y);
+                calc_optical_flow(&img_gray, &img_gray_prev, i, j, &u_x, &u_y);
 
                 //convert flow vector to polar for simpler handling
                 float angle = atan2(u_y, u_x);
@@ -262,11 +259,8 @@ void main(void){
 
         // printf("profiling time: %f\n\r", end_profiling_time-start_profiling_time);
 
-        //destroy buffers
-        for (size_t i = 0; i < TOTAL_LEVELS_PYRAMID; i++){
-            free(img_gray_prev[i].img);
-            // free(img_gray_blurred[i].img);
-        }
+        //free buffers
+        free(img_gray_prev.img);
     }
 
     //todo free the mmal and framebuffer ressources cleanly
