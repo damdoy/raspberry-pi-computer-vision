@@ -32,8 +32,8 @@
 #define CAMERA_FRAMERATE 30
 
 //resolution needs to be smaller than the screen size
-#define CAMERA_RESOLUTION_X 1280
-#define CAMERA_RESOLUTION_Y 720
+#define CAMERA_RESOLUTION_X 640
+#define CAMERA_RESOLUTION_Y 480
 
 #define CHECK_STATUS(status, msg) if (status != MMAL_SUCCESS) { fprintf(stderr, msg"\n\r");}
 
@@ -182,7 +182,7 @@ void main(void){
 
         uint col[3] = {0, 255, 0};
 
-        const uint space_between_points = 15;
+        const uint space_between_points = 10;
 
         //start and end *2 to avoid seg fault
         for (uint i = space_between_points*2; i < img.width-space_between_points*2; i+=space_between_points)
@@ -203,7 +203,7 @@ void main(void){
                 }
 
                 //only draw significant vectors
-                if(mag >= 3){
+                if(mag >= 2){
                     //draw a starting point in red
                     for (int k = -1; k <= 1; k++)
                     {
@@ -316,12 +316,12 @@ float get_cur_time(){
 float calc_dx(image_grayscale_t *img, image_grayscale_t *img_prev, uint pos_x, uint pos_y)
 {
     float val = 0;
-    val += image_grayscale_get(img, pos_x+1, pos_y-1);
-    val += image_grayscale_get(img, pos_x+1, pos_y);
-    val += image_grayscale_get(img, pos_x+1, pos_y+1);
-    val -= image_grayscale_get(img, pos_x-1, pos_y-1);
-    val -= image_grayscale_get(img, pos_x-1, pos_y);
-    val -= image_grayscale_get(img, pos_x-1, pos_y+1);
+    // val += image_grayscale_get(img, pos_x+1, pos_y-1);
+    // val += image_grayscale_get(img, pos_x+1, pos_y);
+    // val += image_grayscale_get(img, pos_x+1, pos_y+1);
+    // val -= image_grayscale_get(img, pos_x-1, pos_y-1);
+    // val -= image_grayscale_get(img, pos_x-1, pos_y);
+    // val -= image_grayscale_get(img, pos_x-1, pos_y+1);
 
     val += image_grayscale_get(img_prev, pos_x+1, pos_y-1);
     val += image_grayscale_get(img_prev, pos_x+1, pos_y);
@@ -330,18 +330,18 @@ float calc_dx(image_grayscale_t *img, image_grayscale_t *img_prev, uint pos_x, u
     val -= image_grayscale_get(img_prev, pos_x-1, pos_y);
     val -= image_grayscale_get(img_prev, pos_x-1, pos_y+1);
 
-    return val/9.0f;
+    return val/6.0f;
 }
 
 float calc_dy(image_grayscale_t *img, image_grayscale_t *img_prev, uint pos_x, uint pos_y)
 {
     float val = 0;
-    val += image_grayscale_get(img, pos_x-1, pos_y+1);
-    val += image_grayscale_get(img, pos_x, pos_y+1);
-    val += image_grayscale_get(img, pos_x+1, pos_y+1);
-    val -= image_grayscale_get(img, pos_x-1, pos_y-1);
-    val -= image_grayscale_get(img, pos_x, pos_y-1);
-    val -= image_grayscale_get(img, pos_x+1, pos_y-1);
+    // val += image_grayscale_get(img, pos_x-1, pos_y+1);
+    // val += image_grayscale_get(img, pos_x, pos_y+1);
+    // val += image_grayscale_get(img, pos_x+1, pos_y+1);
+    // val -= image_grayscale_get(img, pos_x-1, pos_y-1);
+    // val -= image_grayscale_get(img, pos_x, pos_y-1);
+    // val -= image_grayscale_get(img, pos_x+1, pos_y-1);
 
     val += image_grayscale_get(img_prev, pos_x-1, pos_y+1);
     val += image_grayscale_get(img_prev, pos_x, pos_y+1);
@@ -350,7 +350,7 @@ float calc_dy(image_grayscale_t *img, image_grayscale_t *img_prev, uint pos_x, u
     val -= image_grayscale_get(img_prev, pos_x, pos_y-1);
     val -= image_grayscale_get(img_prev, pos_x+1, pos_y-1);
 
-    return val/9.0f;
+    return val/6.0f;
 }
 
 float calc_dt(image_grayscale_t *img, image_grayscale_t *img_prev, uint pos_x, uint pos_y)
@@ -370,15 +370,17 @@ float calc_dt(image_grayscale_t *img, image_grayscale_t *img_prev, uint pos_x, u
 
 void calc_optical_flow(image_grayscale_t *img, image_grayscale_t *img_prev, uint pos_x, uint pos_y, float *u_x, float *u_y)
 {
-    float dx[25];
-    float dy[25];
-    float dt[25];
+    //MUST BE AN ODD VALUE
+    #define WINDOW_SIZE 5
+    float dx[WINDOW_SIZE*WINDOW_SIZE];
+    float dy[WINDOW_SIZE*WINDOW_SIZE];
+    float dt[WINDOW_SIZE*WINDOW_SIZE];
 
     //find dx dy and dt for pixels around the interest point
     uint counter = 0;
-    for(uint j = pos_y-2; j <= pos_y+2; j++)
+    for(uint j = pos_y-(WINDOW_SIZE/2); j <= pos_y+(WINDOW_SIZE/2); j++)
     {
-        for(uint i = pos_x-2; i <= pos_x+2; i++)
+        for(uint i = pos_x-(WINDOW_SIZE/2); i <= pos_x+(WINDOW_SIZE/2); i++)
         {
             dx[counter] = calc_dx(img, img_prev, i, j)/255.0f;
             dy[counter] = calc_dy(img, img_prev, i, j)/255.0f;
@@ -392,7 +394,7 @@ void calc_optical_flow(image_grayscale_t *img, image_grayscale_t *img_prev, uint
     float A_mat[4] = {0, 0, 0, 0};
     float B_mat[2] = {0, 0};
 
-    for (size_t i = 0; i < 25; i++)
+    for (size_t i = 0; i < (WINDOW_SIZE*WINDOW_SIZE); i++)
     {
         A_mat[0] += dx[i]*dx[i];
         A_mat[1] += dx[i]*dy[i];
