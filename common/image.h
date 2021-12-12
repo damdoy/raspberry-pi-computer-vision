@@ -30,4 +30,6 @@ void downscale_gray_image(image_grayscale_t *image_source, image_grayscale_t *im
 void draw_circle(uint x, uint y, uint radius, image_rgb_t *img);
 void draw_line(uint x1, uint y1, uint x2, uint y2, image_rgb_t *img, uint colour[3]);
 
+void sobel_edge_detect(image_grayscale_t *img_in, image_grayscale_t *out);
+
 #endif
