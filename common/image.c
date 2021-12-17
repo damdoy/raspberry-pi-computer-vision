@@ -213,8 +213,7 @@ void draw_line(uint x1, uint y1, uint x2, uint y2, image_rgb_t *img, uint colour
         direction_x = -1;
     }
 
-    uint diff_y = abs(y2-y1);
-    uint slope = 0;
+    float slope = 0;
     //avoid a /0 by having a very steep slope
     if(abs(x2-x1) == 0)
     {
@@ -222,7 +221,7 @@ void draw_line(uint x1, uint y1, uint x2, uint y2, image_rgb_t *img, uint colour
     }
     else
     {
-        slope = abs(y2-y1)/abs(x2-x1);
+        slope = ((float)abs(y2-y1))/((float)abs(x2-x1));
         slope = slope*direction_x*direction_y;
     }
 
@@ -230,15 +229,15 @@ void draw_line(uint x1, uint y1, uint x2, uint y2, image_rgb_t *img, uint colour
 
     for(uint i = x1; i != x2+direction_x; i+= direction_x)
     {
-        uint y = slope*(i-x1)+y1;
-        if(abs(y-cur_y) < 1.0f)
+        float y = slope*((int)i-(int)x1)+y1;
+        if(fabs(y-cur_y) < 1.0f)
         {
             image_set(img, i, cur_y, 0, colour[0]);
             image_set(img, i, cur_y, 1, colour[1]);
             image_set(img, i, cur_y, 2, colour[2]);
         }
 
-        uint next_y = slope*((i+direction_x)-x1)+y1;
+        float next_y = slope*(((int)i+direction_x)-(int)x1)+(int)y1;
         uint cond;
         if(direction_y == 1)
         {
