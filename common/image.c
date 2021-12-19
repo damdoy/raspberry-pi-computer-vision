@@ -19,6 +19,19 @@ inline void image_grayscale_set(image_grayscale_t *img, int x, int y, uint8_t va
     img->img[ (y*img->width+x) ] = val;
 }
 
+inline uint32_t image_grayscale32_get(image_grayscale32_t *img, int x, int y){
+    return img->img[ (y*img->width+x) ];
+}
+
+inline void image_grayscale32_increment_pix(image_grayscale32_t *img, int x, int y){
+    // img->img[ (y*img->width+x) ]+=0x70000000;
+    img->img[ (y*img->width+x) ]++;
+}
+
+inline void image_grayscale32_set(image_grayscale32_t *img, int x, int y, uint32_t val){
+    img->img[ (y*img->width+x) ] = val;
+}
+
 void image_draw(image_rgb_t *img, char *framebuffer, uint framebuffer_width){
     int offset_data = 0;
     for(int i = 0; i < img->height; i++){
@@ -126,6 +139,20 @@ void downscale_gray_image(image_grayscale_t *image_source, image_grayscale_t *im
         for (int x = 0; x < image_dest->width; x++)
         {
             image_grayscale_set(image_dest, x, y, image_grayscale_get(image_source, x*2, y*2));
+        }
+    }
+}
+
+void image_draw_grayscale32(image_grayscale32_t *img, char *framebuffer, uint framebuffer_width){
+    int offset_data = 0;
+    for(int i = 0; i < img->height; i++){
+        for(int j = 0; j < img->width*4; j+=4){
+            int idx = i*framebuffer_width*4+j;
+            framebuffer[idx] = (img->img[offset_data]&0xFF000000)>>24;
+            framebuffer[idx+1] = (img->img[offset_data]&0xFF000000)>>24;
+            framebuffer[idx+2] = (img->img[offset_data]&0xFF000000)>>24;
+            framebuffer[idx+3] = 0;
+            offset_data++;
         }
     }
 }
@@ -264,115 +291,4 @@ void draw_line(uint x1, uint y1, uint x2, uint y2, image_rgb_t *img, uint colour
             }
         }
     }
-}
-
-//very naive implementation, very slow
-void sobel_edge_detect_naive(image_grayscale_t *img_in, image_grayscale_t *out){
-    out->width = img_in->width;
-    out->height = img_in->height;
-    out->img = malloc(out->width*out->height);
-
-    memset(out->img, 0, out->width*out->height);
-
-    //never get to the frame pixels as they would cause seg fault
-    for(int j = 1; j < out->height-1; j++)
-    {
-        for(int i = 1; i < out->width-1; i++)
-        {
-            int conv_calc_x = 0;
-
-            conv_calc_x += image_grayscale_get(img_in, i-1, j-1);
-            conv_calc_x += 2*image_grayscale_get(img_in, i-1, j);
-            conv_calc_x += image_grayscale_get(img_in, i-1, j+1);
-
-            conv_calc_x -= image_grayscale_get(img_in, i+1, j-1);
-            conv_calc_x -= 2*image_grayscale_get(img_in, i+1, j);
-            conv_calc_x -= image_grayscale_get(img_in, i+1, j+1);
-
-            int conv_calc_y = 0;
-
-            conv_calc_y += image_grayscale_get(img_in, i-1, j-1);
-            conv_calc_y += 2*image_grayscale_get(img_in, i, j-1);
-            conv_calc_y += image_grayscale_get(img_in, i+1, j-1);
-
-            conv_calc_y -= image_grayscale_get(img_in, i-1, j+1);
-            conv_calc_y -= 2*image_grayscale_get(img_in, i, j+1);
-            conv_calc_y -= image_grayscale_get(img_in, i+1, j+1);
-
-            int value = sqrt(conv_calc_x*conv_calc_x+conv_calc_y*conv_calc_y);
-
-            //clamp
-            if(value > 255)
-            {
-                value = 255;
-            }
-
-            image_grayscale_set(out, i, j, value);
-        }
-    }
-}
-
-//use separation of the sobel kernel, saves a bit of processing, but not much
-void sobel_edge_detect(image_grayscale_t *img_in, image_grayscale_t *out){
-    out->width = img_in->width;
-    out->height = img_in->height;
-    out->img = malloc(out->width*out->height);
-
-    memset(out->img, 0, out->width*out->height);
-
-    //temporary matrices
-    int *temp_mat_x = malloc(out->width*out->height*sizeof(int));
-    int *temp_mat_y = malloc(out->width*out->height*sizeof(int));
-
-    //calculate first slice of the separated matrix
-    for(int j = 1; j < out->height-1; j++)
-    {
-        for(int i = 1; i < out->width-1; i++)
-        {
-            uint idx = j*out->width+i;
-
-            temp_mat_x[idx] += image_grayscale_get(img_in, i-1, j);
-            // temp_mat_x[idx] += 0*image_grayscale_get(img_in, i, j);
-            temp_mat_x[idx] -= image_grayscale_get(img_in, i+1, j);
-
-            temp_mat_y[idx] += image_grayscale_get(img_in, i, j-1);
-            temp_mat_y[idx] += 2*image_grayscale_get(img_in, i, j);
-            temp_mat_y[idx] += image_grayscale_get(img_in, i, j+1);
-
-        }
-    }
-
-    for(int j = 2; j < out->height-2; j++)
-    {
-        for(int i = 2; i < out->width-2; i++)
-        {
-            uint idx = j*out->width+i;
-            uint idx_y_prev = (j-1)*out->width+i;
-            uint idx_y_next = (j+1)*out->width+i;
-
-            int conv_calc_x = 0;
-            int conv_calc_y = 0;
-
-            conv_calc_x += temp_mat_x[idx-1];
-            conv_calc_x += 2*temp_mat_x[idx];
-            conv_calc_x += temp_mat_x[idx+1];
-
-            conv_calc_y += temp_mat_y[idx_y_prev];
-            // conv_calc_y += 0*temp_mat_y[idx];
-            conv_calc_y -= temp_mat_y[idx_y_next];
-
-            int value = sqrt(conv_calc_x*conv_calc_x+conv_calc_y*conv_calc_y);
-            // int value = sqrt(conv_calc_y*conv_calc_y);
-
-            if(value > 255)
-            {
-                value = 255;
-            }
-
-            image_grayscale_set(out, i, j, value);
-        }
-    }
-
-    free(temp_mat_x);
-    free(temp_mat_y);
 }

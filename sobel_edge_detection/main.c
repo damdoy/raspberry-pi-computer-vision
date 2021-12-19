@@ -19,6 +19,7 @@
 #include "interface/vcos/vcos.h"
 
 #include "../common/image.h"
+#include "../common/edge_detect.h"
 
 #define MMAL_CAMERA_PREVIEW_PORT 0
 #define MMAL_CAMERA_VIDEO_PORT 1
