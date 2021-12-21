@@ -24,7 +24,6 @@ inline uint32_t image_grayscale32_get(image_grayscale32_t *img, int x, int y){
 }
 
 inline void image_grayscale32_increment_pix(image_grayscale32_t *img, int x, int y){
-    // img->img[ (y*img->width+x) ]+=0x70000000;
     img->img[ (y*img->width+x) ]++;
 }
 
@@ -281,6 +280,11 @@ void draw_line(uint x1, uint y1, uint x2, uint y2, image_rgb_t *img, uint colour
             image_set(img, i, cur_y, 1, colour[1]);
             image_set(img, i, cur_y, 2, colour[2]);
             cur_y += direction_y;
+
+            if(cur_y < smallest_y || cur_y > biggest_y){
+                return;
+            }
+
             if(direction_y == 1)
             {
                 cond = next_y > cur_y;
