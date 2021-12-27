@@ -1,4 +1,4 @@
-# Segmentation using kmeans
+# Segmentation using K-Means
 
 Segmentation of images using K-means algorithm
 The algorithm will try to find centroids in the space of points representing the pixels. The points can contain the `rgb` value of pixels. The position of the pixels `xy` can also be added to the points to improve the localisation of the clusters.\
