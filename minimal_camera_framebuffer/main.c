@@ -68,6 +68,22 @@ void main(void){
     status = mmal_port_parameter_set_uint32(camera->control, MMAL_PARAMETER_SHUTTER_SPEED, CAMERA_SHUTTER_SPEED);
     CHECK_STATUS(status, "failed to set shutter speed");
 
+    /* possible values for the AWB
+        MMAL_PARAM_AWBMODE_OFF,
+        MMAL_PARAM_AWBMODE_AUTO,
+        MMAL_PARAM_AWBMODE_SUNLIGHT,
+        MMAL_PARAM_AWBMODE_CLOUDY,
+        MMAL_PARAM_AWBMODE_SHADE,
+        MMAL_PARAM_AWBMODE_TUNGSTEN,
+        MMAL_PARAM_AWBMODE_FLUORESCENT,
+        MMAL_PARAM_AWBMODE_INCANDESCENT,
+        MMAL_PARAM_AWBMODE_FLASH,
+        MMAL_PARAM_AWBMODE_HORIZON,
+        MMAL_PARAM_AWBMODE_GREYWORLD
+    */
+    status = mmal_port_parameter_set_uint32(camera->control, MMAL_PARAMETER_AWB_MODE, MMAL_PARAM_AWBMODE_INCANDESCENT);
+    CHECK_STATUS(status, "failed to set AWB");
+
     video_port = camera->output[MMAL_CAMERA_VIDEO_PORT];
 
     format = video_port->format;
@@ -90,7 +106,7 @@ void main(void){
     CHECK_STATUS(status, "failed to set framerate");
 
     //two buffers seem a good compromise, more will cause some latency
-    video_port->buffer_num = 3;
+    video_port->buffer_num = 2;
     pool = mmal_port_pool_create(video_port, video_port->buffer_num, video_port->buffer_size);
 
     video_port->userdata = (void *)pool->queue;
@@ -146,17 +162,19 @@ void main(void){
 
         //draw the image on the top left corner of the framebuffer
         //would be less costly to limit frambuffer size and just do a memcpy
-        int offset_data = 0;
+        int img_idx = 0;
+        int framebuffer_idx = 0;
         for(int i = 0; i < CAMERA_RESOLUTION_Y; i++){
-           for(int j = 0; j < CAMERA_RESOLUTION_X*4; j+=4){
-               int idx = i*screen_size_x*4+j;
+           for(int j = 0; j < CAMERA_RESOLUTION_X; j++){
                //seem that R and B components are inverted
-               fbp[idx] = buffer->data[offset_data+2];
-               fbp[idx+1] = buffer->data[offset_data+1];
-               fbp[idx+2] = buffer->data[offset_data+0];
-               fbp[idx+3] = 0;
-               offset_data += 3;
+               fbp[framebuffer_idx] = buffer->data[img_idx+2];
+               fbp[framebuffer_idx+1] = buffer->data[img_idx+1];
+               fbp[framebuffer_idx+2] = buffer->data[img_idx+0];
+               fbp[framebuffer_idx+3] = 0;
+               img_idx += 3;
+               framebuffer_idx += 4;
            }
+           framebuffer_idx = i*screen_size_x*4;
         }
 
         end_copy_time = get_cur_time();
