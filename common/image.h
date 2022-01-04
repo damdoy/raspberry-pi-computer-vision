@@ -27,6 +27,9 @@ void image_draw(image_rgb_t *img, char *framebuffer, uint framebuffer_width);
 uint8_t image_get(image_rgb_t *img, int x, int y, int channel);
 void image_set(image_rgb_t *img, int x, int y, int channel, uint8_t val);
 
+void save_image_rgb_to_file(image_rgb_t *img, char *filename);
+void save_image_grayscale_to_file(image_grayscale_t *img, char *filename);
+
 void image_draw_grayscale(image_grayscale_t *img, char *framebuffer, uint framebuffer_width);
 uint8_t image_grayscale_get(image_grayscale_t *img, int x, int y);
 void image_grayscale_set(image_grayscale_t *img, int x, int y, uint8_t val);

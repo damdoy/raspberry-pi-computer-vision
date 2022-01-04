@@ -2,6 +2,7 @@
 
 #include <math.h>
 #include <string.h>
+#include <stdio.h>
 
 inline uint8_t image_get(image_rgb_t *img, int x, int y, int channel){
     return img->img[ (y*img->width+x)*3+channel ];
@@ -31,11 +32,39 @@ inline void image_grayscale32_set(image_grayscale32_t *img, int x, int y, uint32
     img->img[ (y*img->width+x) ] = val;
 }
 
+void save_image_rgb_to_file(image_rgb_t *img, char *filename){
+    FILE *fp = fopen(filename, "wb");
+    for (size_t y = 0; y < img->height; y++)
+    {
+        for (size_t x = 0; x < img->width; x++)
+        {
+            fputc(image_get(img, x, y, 0), fp);
+            fputc(image_get(img, x, y, 1), fp);
+            fputc(image_get(img, x, y, 2), fp);
+        }
+    }
+
+    fclose(fp);
+}
+
+void save_image_grayscale_to_file(image_grayscale_t *img, char *filename){
+    FILE *fp = fopen(filename, "wb");
+    for (size_t y = 0; y < img->height; y++)
+    {
+        for (size_t x = 0; x < img->width; x++)
+        {
+            fputc(image_grayscale_get(img, x, y), fp);
+        }
+    }
+
+    fclose(fp);
+}
+
 void image_draw(image_rgb_t *img, char *framebuffer, uint framebuffer_width){
     int offset_data = 0;
     for(int i = 0; i < img->height; i++){
-        for(int j = 0; j < img->width*4; j+=4){
-            int idx = i*framebuffer_width*4+j;
+        for(int j = 0; j < img->width*3; j+=3){
+            int idx = i*framebuffer_width*3+j;
             //seem that R and B components are inverted
             framebuffer[idx] = img->img[offset_data+2];
             framebuffer[idx+1] = img->img[offset_data+1];
@@ -49,8 +78,8 @@ void image_draw(image_rgb_t *img, char *framebuffer, uint framebuffer_width){
 void image_draw_grayscale(image_grayscale_t *img, char *framebuffer, uint framebuffer_width){
     int offset_data = 0;
     for(int i = 0; i < img->height; i++){
-        for(int j = 0; j < img->width*4; j+=4){
-            int idx = i*framebuffer_width*4+j;
+        for(int j = 0; j < img->width*3; j+=3){
+            int idx = i*framebuffer_width*3+j;
             framebuffer[idx] = img->img[offset_data];
             framebuffer[idx+1] = img->img[offset_data];
             framebuffer[idx+2] = img->img[offset_data];
